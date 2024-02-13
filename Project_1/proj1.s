@@ -7,6 +7,8 @@
 # REGISTER USAGE:   (this is where we decsribe the semantics of values within registers)
 #	s0: stores the integer input from the keyboard
 #	t0: stores the result of the next number in the sequence
+#	t1: stores the result of the input integer & 1
+#	t2: stores the number of steps
 #	a0: stores the address of prompt string (msg1 or msg2) (input parameter to syscall)
 #	v0: syscall returns input values here
 #
@@ -15,6 +17,16 @@
 # 	Else 
 # 		If the number is even, divide it by two and report the result;
 # 		If the number is odd, triple it and add one and report the result;
+#
+# PSEUDO-CODE
+# 	Prompt the user to enter a positive integer
+# 	Read the integer from the keyboard
+# 	If the integer is non-positive, report an error message and exit gracefully
+# 	If the integer is positive, calculate the next number in the sequence
+# 	Print the next number in the sequence
+# 	Print the hailstone numbers
+# 	Print the number of steps
+# 	Exit gracefully
 
 
 	# assembler directive to describe the "main" as a global label
@@ -27,6 +39,9 @@ msg2:	.asciiz		"The next integer in the sequence is: "
 msg3:	.asciiz		"The entered integer shall be positive. "
 msg4:	.asciiz		"The hailstone numbers are: "
 msg5:	.asciiz		"The number of steps is: "
+
+comma:		.asciiz ", " # comma and space
+newLine: 	.asciiz "\n" # new line
 
 	.text   # Text region - user instructions (your code)
 	
@@ -47,6 +62,7 @@ main:		# Start of code section
 # Do not touch anything above this line.
 # Write your program below this line.
 ########################################
+
 	# If the input integer is not positive, print an error message and exit
 	bgtz $s0, positive # if $s0 > 0, go to line PC + 5
 	la $a0, msg3	# load address of msg3 into register
@@ -80,14 +96,28 @@ main:		# Start of code section
 		move $a0, $t0	# move integer to be printed into $a0:  $a0 = $t0
 		syscall		# call operating system to print the integer stored in $a0
 
+		# New line
+		li $v0, 4
+		la $a0, newLine
+		syscall
+
 	li $v0, 4	# system call code for printing a message = 4
 	la $a0, msg4	# load address of msg4 into register
 	syscall		# make a syscall to print msg4 in console window
 
+	# ToDo: Print new line
+
 	# counter for the number of steps
 	li $t2, 0 # $t2 = 0
+	jal firstRun # go to firstRun
 
 	hailstone: # Print the hailstone numbers
+		#print comma
+		li $v0, 4
+		la $a0, comma
+		syscall
+		
+	firstRun:
 		andi $t1, $s0, 1 # $t1 = $s0 & 1
 		beqz $t1, evenH # if $t1 == 0, go to even
 
@@ -99,9 +129,9 @@ main:		# Start of code section
 
 		evenH: # If the input integer is even, divide it by 2
 			srl $t0, $s0, 1 # $t0 = $s0 >> 1
-			j printH # go to print
 
 	printH:
+		# Print the hailstone number
 		li $v0, 1
 		move $a0, $t0
 		syscall
@@ -111,12 +141,22 @@ main:		# Start of code section
 		move $s0, $t0 # $s0 = $t0
 		bne $t0, 1, hailstone # if $t0 != 1 go to hailstone
 
+	# Print New Line
+	li $v0, 4
+	la $a0, newLine
+	syscall
+
+	# Print the number of steps
 	li $v0, 4
 	la $a0, msg5
 	syscall
 
 	li $v0, 1
 	move $a0, $t2
+	syscall
+
+	li $v0, 4
+	la $a0, newLine
 	syscall
 
 ########################################
